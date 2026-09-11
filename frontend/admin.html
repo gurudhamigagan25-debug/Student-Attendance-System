@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Student Attendance</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-shell admin-shell">
+        <aside class="sidebar">
+            <div class="brand"><span class="brand-mark">SA</span><span>Student<span class="brand-light">Attend</span></span></div>
+            <nav aria-label="Admin sections">
+                <a class="nav-link active" href="#students">Student overview</a>
+                <a class="nav-link" href="#attendance">Attendance</a>
+                <a class="nav-link" href="#security">Change password of admin</a>
+            </nav>
+            <button id="adminLogoutButton" class="button button-ghost sidebar-logout" type="button">Log out</button>
+        </aside>
+        <main class="dashboard-main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">ADMIN PORTAL</p>
+                    <h1>Attendance management</h1>
+                    <p class="muted">Search students and keep attendance records up to date.</p>
+                </div>
+                <div class="avatar">A</div>
+            </header>
+
+            <section class="stats-grid admin-overview-section">
+                <article class="stat-card stat-primary"><span class="stat-label">Students</span><strong id="adminStudentCount">0</strong><span class="stat-note">Registered students</span></article>
+                <article class="stat-card"><span class="stat-label">Selected student</span><strong id="adminSelectedName">—</strong><span class="stat-note">Currently viewing</span></article>
+                <article class="stat-card"><span class="stat-label">Present records</span><strong id="adminPresentCount">0</strong><span class="stat-note">For selected student</span></article>
+                <article class="stat-card"><span class="stat-label">Attendance rate</span><strong id="adminRate">0%</strong><span class="stat-note">For selected student</span></article>
+            </section>
+
+            <section id="students" class="panel admin-student-panel admin-overview-section">
+                <div class="panel-heading">
+                    <div><p class="eyebrow">DIRECTORY</p><h2>Students</h2></div>
+                    <span id="adminStudentBadge" class="badge">0 students</span>
+                </div>
+                <form id="studentSearchForm" class="admin-search-form">
+                    <label class="sr-only" for="studentSearch">Search students</label>
+                    <input id="studentSearch" type="search" placeholder="Search by name, student ID, email, or department">
+                    <button class="button" type="submit">Search</button>
+                </form>
+                <div class="table-wrap admin-student-table">
+                    <table>
+                        <thead><tr><th>Student ID</th><th>Name</th><th>Email</th><th>Department</th><th></th></tr></thead>
+                        <tbody id="adminStudentTable"><tr><td colspan="5" class="empty-state">Loading students...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="studentOverview" class="panel admin-student-overview admin-overview-section">
+                <div class="panel-heading">
+                    <div><p class="eyebrow">STUDENT OVERVIEW</p><h2 id="adminDetailTitle">Select a student</h2></div>
+                    <span class="badge">Profile details</span>
+                </div>
+                <div id="adminStudentDetails" class="student-details"><p class="muted">Choose a student from the directory to view details.</p></div>
+            </section>
+
+            <section id="attendance" class="admin-attendance-section">
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div><p class="eyebrow">ATTENDANCE ENTRY</p><h2 id="adminAttendanceTitle">Select a student first</h2></div>
+                        <span class="badge">Date and period</span>
+                    </div>
+                    <label class="attendance-student-picker">Student
+                        <select id="attendanceStudent" required>
+                            <option value="">Select a student</option>
+                        </select>
+                    </label>
+                    <form id="attendanceForm" class="compact-form admin-attendance-form">
+                        <label>Date<input id="attendanceDate" type="date" required></label>
+                        <label>Time<input id="attendanceTime" type="time" required></label>
+                        <label>Period<input id="attendancePeriod" type="text" maxlength="50" placeholder="e.g. 1st period" required></label>
+                        <label>Status<select id="attendanceStatus" required><option value="Present">Present</option><option value="Absent">Absent</option></select></label>
+                        <label class="full-width">Notes<textarea id="attendanceNotes" rows="3" maxlength="500" placeholder="Optional notes"></textarea></label>
+                        <button class="button" type="submit">Save attendance</button>
+                        <p id="attendanceMessage" class="form-message"></p>
+                    </form>
+                </article>
+                <article class="panel">
+                    <div class="panel-heading"><div><p class="eyebrow">ATTENDANCE ONLY</p><h2>Attendance history</h2></div></div>
+                    <div class="table-wrap admin-history-table">
+                        <table>
+                            <thead><tr><th>Date</th><th>Time</th><th>Period</th><th>Status</th><th>Notes</th></tr></thead>
+                            <tbody id="adminAttendanceTable"><tr><td colspan="5" class="empty-state">Select a student to load records.</td></tr></tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+            <section id="security" class="panel admin-security-panel">
+                <div class="panel-heading">
+                    <div><p class="eyebrow">ACCOUNT SECURITY</p><h2>Change password of admin</h2></div>
+                </div>
+                <p class="muted admin-security-copy">Update the administrator email and password used to sign in.</p>
+                <form id="adminAccountForm" class="compact-form">
+                    <label>Current password<input id="adminCurrentPassword" type="password" required></label>
+                    <label>New Gmail ID<input id="adminNewEmail" type="email" placeholder="admin@example.com" required></label>
+                    <label>New password<input id="adminNewPassword" type="password" minlength="6" required></label>
+                    <label>Confirm new password<input id="adminConfirmPassword" type="password" minlength="6" required></label>
+                    <button class="button" type="submit">Save admin account</button>
+                    <p id="adminAccountMessage" class="form-message"></p>
+                </form>
+            </section>
+            <p id="adminError" class="error-message"></p>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

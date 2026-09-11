@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-shell">
+        <aside class="sidebar">
+            <div class="brand"><span class="brand-mark">SA</span><span>Student<span class="brand-light">Attend</span></span></div>
+            <nav aria-label="Dashboard sections">
+                <a class="nav-link active" href="#overview" data-section="overview">Overview</a>
+                <a class="nav-link" href="#attendance" data-section="attendance">Attendance</a>
+                <a class="nav-link" href="#profile" data-section="profile">My Profile</a>
+                <a class="nav-link" href="#security" data-section="security">Security</a>
+            </nav>
+            <button id="logoutButton" class="button button-ghost sidebar-logout" type="button">Log out</button>
+        </aside>
+        <main class="dashboard-main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">STUDENT PORTAL</p>
+                    <h1 id="welcomeMessage">Welcome back!</h1>
+                    <p class="muted">Keep track of your academic attendance and progress.</p>
+                </div>
+                <div class="avatar" id="studentAvatar">S</div>
+            </header>
+
+            <section id="overview" class="stats-grid dashboard-section">
+                <article class="stat-card stat-primary"><span class="stat-label">Attendance rate</span><strong id="attendancePercentage">0%</strong><span class="stat-note">Overall attendance</span></article>
+                <article class="stat-card"><span class="stat-label">Present days</span><strong id="presentDays">0</strong><span class="stat-note">Classes attended</span></article>
+                <article class="stat-card"><span class="stat-label">Absent days</span><strong id="absentDays">0</strong><span class="stat-note">Classes missed</span></article>
+                <article class="stat-card"><span class="stat-label">Total classes</span><strong id="totalDays">0</strong><span class="stat-note">Recorded classes</span></article>
+            </section>
+
+            <section class="content-grid">
+                <article id="attendance" class="panel attendance-panel dashboard-section">
+                    <div class="panel-heading"><div><p class="eyebrow">YOUR RECORD</p><h2>Attendance history</h2></div><span id="attendanceBadge" class="badge">No records</span></div>
+                    <div class="progress-track"><div id="attendanceProgress" class="progress-fill"></div></div>
+                    <p id="attendanceAdvice" class="muted attendance-advice">Your attendance summary will appear here.</p>
+                    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Time</th><th>Period</th><th>Status</th></tr></thead><tbody id="attendanceTable"><tr><td colspan="4" class="empty-state">Loading attendance...</td></tr></tbody></table></div>
+                </article>
+
+                <article id="profile" class="panel dashboard-section">
+                    <div class="panel-heading"><div><p class="eyebrow">PERSONAL DETAILS</p><h2>My profile</h2></div></div>
+                    <form id="profileForm" class="compact-form">
+                        <label>Full name<input id="profileName" required></label>
+                        <label>Phone<input id="profilePhone" required></label>
+                        <label>Department<input id="profileDepartment" required></label>
+                        <label>Semester<input id="profileSemester" type="number" min="1" max="8" required></label>
+                        <button class="button" type="submit">Save profile</button>
+                        <p id="profileMessage" class="form-message"></p>
+                    </form>
+                </article>
+            </section>
+
+            <section id="security" class="panel security-panel dashboard-section">
+                <div class="panel-heading"><div><p class="eyebrow">ACCOUNT SECURITY</p><h2>Change password</h2></div></div>
+                <form id="passwordForm" class="password-form">
+                    <label>Current password<input id="currentPassword" type="password" required></label>
+                    <label>New password<input id="newPassword" type="password" minlength="6" required></label>
+                    <label>Confirm new password<input id="confirmNewPassword" type="password" minlength="6" required></label>
+                    <button class="button" type="submit">Update password</button>
+                </form>
+                <p id="passwordMessage" class="form-message"></p>
+            </section>
+            <p id="dashboardError" class="error-message"></p>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Attendance System</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="card">
+
+            <h1>Student Attendance System</h1>
+            <h2>Student Registration</h2>
+
+            <form id="registerForm">
+
+                <label>Student ID</label>
+                <input type="text" id="student_id" placeholder="Enter Student ID" required>
+
+                <label>Full Name</label>
+                <input type="text" id="name" placeholder="Enter Full Name" required>
+
+                <label>Email</label>
+                <input type="email" id="email" placeholder="Enter Email" required>
+
+                <label>Department</label>
+                <input type="text" id="department" placeholder="Enter Department" required>
+
+                <label>Semester</label>
+                <input type="number" id="semester" placeholder="Enter Semester" min="1" max="8" required>
+
+                <label>Phone</label>
+                <input type="text" id="phone" placeholder="Enter Phone Number" required>
+
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Create Password" required>
+
+                <label>Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+
+                <button type="submit">Register</button>
+
+            </form>
+
+            <p>
+                Already registered?
+                <a href="login.html">Login here</a>
+            </p>
+
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
