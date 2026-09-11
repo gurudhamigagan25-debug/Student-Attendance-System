@@ -31,6 +31,16 @@ let adminEmail = ADMIN_EMAIL;
 let adminPasswordHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
 const adminTokens = new Set();
 
+function nonEmptyText(value, maxLength) {
+    const text = String(value == null ? "" : value).trim();
+    return text && text.length <= maxLength ? text : "";
+}
+
+function validSemester(value) {
+    const semester = Number(value);
+    return Number.isInteger(semester) && semester >= 1 && semester <= 8;
+}
+
 function sqliteErrorMessage(error) {
     return error && error.message ? error.message : String(error);
 }
@@ -348,21 +358,18 @@ app.post("/api/students/register", async (req, res) => {
             });
         }
 
-        if (
-            !student_id ||
-            !name ||
-            !email ||
-            !department ||
-            !semester ||
-            !phone ||
-            !password
-        ) {
+        const trimmedStudentId = nonEmptyText(student_id, 50);
+        const trimmedName = nonEmptyText(name, 100);
+        const trimmedDepartment = nonEmptyText(department, 50);
+        const trimmedPhone = nonEmptyText(phone, 20);
+        const trimmedPassword = String(password || "");
+        if (!trimmedStudentId || !trimmedName || !trimmedDepartment || !trimmedPhone ||
+            !validSemester(semester) || trimmedPassword.length < 6) {
             return res.status(400).json({
-                message: "All fields are required"
+                message: "Please provide valid profile fields and a password of at least 6 characters"
             });
         }
 
-        const trimmedStudentId = String(student_id).trim();
         const trimmedEmail = String(email).trim().toLowerCase();
 
         if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
@@ -382,7 +389,7 @@ app.post("/api/students/register", async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
 
         await executeQuery(
             `INSERT INTO students
@@ -390,11 +397,11 @@ app.post("/api/students/register", async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 trimmedStudentId,
-                name.trim(),
+                trimmedName,
                 trimmedEmail,
-                department.trim(),
+                trimmedDepartment,
                 Number(semester),
-                phone.trim(),
+                trimmedPhone,
                 hashedPassword
             ]
         );
@@ -493,9 +500,10 @@ function validDate(value) {
 }
 
 function validTime(value) {
+    const parts = String(value || "").split(":");
     return /^\d{2}:\d{2}(:\d{2})?$/.test(String(value || "")) &&
-        Number(String(value).split(":")[0]) < 24 &&
-        Number(String(value).split(":")[1]) < 60;
+        Number(parts[0]) < 24 && Number(parts[1]) < 60 &&
+        (parts.length < 3 || Number(parts[2]) < 60);
 }
 
 async function findStudent(identifier) {
@@ -701,6 +709,7 @@ app.post("/api/admin/students/:studentId/attendance", requireAdmin, async (req, 
             return res.status(400).json({ message: "A valid date and time are required" });
         }
         if (!period || period.length > 50) return res.status(400).json({ message: "Period must be 1-50 characters" });
+        if (notes && notes.length > 500) return res.status(400).json({ message: "Notes must be 500 characters or fewer" });
         if (!["Present", "Absent"].includes(status)) {
             return res.status(400).json({ message: "Status must be Present or Absent" });
         }
@@ -750,7 +759,7 @@ app.get("/api/students/:studentId/attendance", async (req, res) => {
             `SELECT id, attendance_date, attendance_time, period, status, notes
              FROM attendance
              WHERE student_id = ?
-             ORDER BY attendance_date DESC`,
+             ORDER BY attendance_date DESC, attendance_time DESC, id DESC`,
             [student.id]
         );
         const present = records.filter((record) => record.status === "Present").length;
@@ -779,16 +788,20 @@ app.put("/api/students/:studentId/profile", async (req, res) => {
         }
 
         const studentId = Number(req.params.studentId);
-        const { name, phone, department, semester } = req.body;
-        if (!Number.isInteger(studentId) || studentId < 1 || !name || !phone || !department || !semester) {
-            return res.status(400).json({ message: "All profile fields are required" });
+        const name = nonEmptyText(req.body.name, 100);
+        const phone = nonEmptyText(req.body.phone, 20);
+        const department = nonEmptyText(req.body.department, 50);
+        const semester = Number(req.body.semester);
+        if (!Number.isInteger(studentId) || studentId < 1 || !name || !phone ||
+            !department || !validSemester(semester)) {
+            return res.status(400).json({ message: "Please provide valid profile fields" });
         }
 
         await executeQuery(
             `UPDATE students
              SET name = ?, phone = ?, department = ?, semester = ?
              WHERE id = ?`,
-            [String(name).trim(), String(phone).trim(), String(department).trim(), Number(semester), studentId]
+            [name, phone, department, semester, studentId]
         );
         const rows = await selectRows(
             "SELECT id, student_id, name, email, department, semester, phone FROM students WHERE id = ?",

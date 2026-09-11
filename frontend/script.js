@@ -1,7 +1,12 @@
 const API_URL = "http://localhost:5000/api";
 
 async function readResponse(response) {
-    const data = await response.json();
+    let data;
+    try {
+        data = await response.json();
+    } catch (error) {
+        throw new Error("The server returned an invalid response");
+    }
     if (!response.ok) {
         throw new Error(data.message || "Request failed");
     }
@@ -234,6 +239,39 @@ if (adminDashboard) {
             localStorage.removeItem("adminToken");
             window.location.href = "admin-login.html";
         });
+        document.getElementById("adminAccountForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const message = document.getElementById("adminAccountMessage");
+            const newPassword = document.getElementById("adminNewPassword").value;
+            if (newPassword !== document.getElementById("adminConfirmPassword").value) {
+                message.textContent = "New passwords do not match.";
+                message.className = "form-message error-message";
+                return;
+            }
+            try {
+                const data = await adminFetch("/admin/account", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        currentPassword: document.getElementById("adminCurrentPassword").value,
+                        email: document.getElementById("adminNewEmail").value.trim(),
+                        newPassword
+                    })
+                });
+                const newEmail = document.getElementById("adminNewEmail").value.trim();
+                message.textContent = data.message;
+                message.className = "form-message success-message";
+                document.getElementById("adminAccountForm").reset();
+                setTimeout(() => {
+                    localStorage.removeItem("adminToken");
+                    localStorage.setItem("adminEmail", newEmail);
+                    window.location.href = "admin-login.html";
+                }, 900);
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = "form-message error-message";
+            }
+        });
         document.getElementById("attendanceForm").addEventListener("submit", async (event) => {
             event.preventDefault();
             const message = document.getElementById("attendanceMessage");
@@ -252,38 +290,6 @@ if (adminDashboard) {
                         status: document.getElementById("attendanceStatus").value,
                         notes: document.getElementById("attendanceNotes").value.trim()
                     })
-                });
-                document.getElementById("adminAccountForm").addEventListener("submit", async (event) => {
-                    event.preventDefault();
-                    const message = document.getElementById("adminAccountMessage");
-                    const newPassword = document.getElementById("adminNewPassword").value;
-                    if (newPassword !== document.getElementById("adminConfirmPassword").value) {
-                        message.textContent = "New passwords do not match.";
-                        message.className = "form-message error-message";
-                        return;
-                    }
-                    try {
-                        const data = await adminFetch("/admin/account", {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                currentPassword: document.getElementById("adminCurrentPassword").value,
-                                email: document.getElementById("adminNewEmail").value.trim(),
-                                newPassword
-                            })
-                        });
-                        message.textContent = data.message;
-                        message.className = "form-message success-message";
-                        document.getElementById("adminAccountForm").reset();
-                        setTimeout(() => {
-                            localStorage.removeItem("adminToken");
-                            localStorage.setItem("adminEmail", document.getElementById("adminNewEmail").value.trim());
-                            window.location.href = "admin-login.html";
-                        }, 900);
-                    } catch (error) {
-                        message.textContent = error.message;
-                        message.className = "form-message error-message";
-                    }
                 });
                 message.textContent = response.message;
                 message.className = "form-message success-message";
@@ -304,7 +310,13 @@ if (adminDashboard) {
 
 const dashboard = document.querySelector(".dashboard-shell:not(.admin-shell)");
 if (dashboard) {
-    const student = JSON.parse(localStorage.getItem("student") || "null");
+    let student;
+    try {
+    student = JSON.parse(localStorage.getItem("student") || "null");
+    } catch (error) {
+    localStorage.removeItem("student");
+    student = null;
+    }
     if (!student) {
         window.location.href = "login.html";
     } else {
@@ -337,6 +349,9 @@ if (dashboard) {
         const profilePhone = document.getElementById("profilePhone");
         const profileDepartment = document.getElementById("profileDepartment");
         const profileSemester = document.getElementById("profileSemester");
+        const escapeHtml = (value) => String(value == null ? "" : value)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         const refreshIdentity = () => {
             welcomeMessage.textContent = `Welcome back, ${student.name.split(" ")[0]}!`;
             studentAvatar.textContent = student.name.charAt(0).toUpperCase();
@@ -361,7 +376,7 @@ if (dashboard) {
                     ? data.summary.percentage >= 75 ? "Great work! You are meeting the recommended attendance target." : "Your attendance is below 75%. Try to attend upcoming classes regularly."
                     : "Attendance records have not been added yet.";
                 document.getElementById("attendanceTable").innerHTML = data.records.length
-                    ? data.records.map((record) => `<tr><td>${new Date(`${record.attendance_date}T00:00:00`).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}</td><td>${String(record.attendance_time || "").slice(0, 5) || "—"}</td><td>${record.period || "General"}</td><td><span class="status ${record.status.toLowerCase()}">${record.status}</span></td></tr>`).join("")
+                    ? data.records.map((record) => `<tr><td>${escapeHtml(new Date(`${record.attendance_date}T00:00:00`).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }))}</td><td>${escapeHtml(String(record.attendance_time || "").slice(0, 5) || "—")}</td><td>${escapeHtml(record.period || "General")}</td><td><span class="status ${record.status === "Present" ? "present" : "absent"}">${escapeHtml(record.status)}</span></td></tr>`).join("")
                     : '<tr><td colspan="4" class="empty-state">No attendance records yet.</td></tr>';
             } catch (error) {
                 document.getElementById("dashboardError").textContent = error.message;
