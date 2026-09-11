@@ -139,7 +139,10 @@ if (adminDashboard) {
         const adminFetch = async (url, options = {}) => {
             const response = await fetch(`${API_URL}${url}`, {
                 ...options,
-                headers: { ...(options.headers || {}), Authorization: `Bearer ${localStorage.getItem("adminToken")}` }
+                headers: {
+                    ...(options.headers || {}),
+                    Authorization: "Bearer " + (localStorage.getItem("adminToken") || "")
+                }
             });
             if (response.status === 401) {
                 localStorage.removeItem("adminToken");
