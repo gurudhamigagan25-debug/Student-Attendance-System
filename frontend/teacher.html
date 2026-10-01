@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | Student Attendance</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-shell teacher-shell">
+        <aside class="sidebar">
+            <div class="brand"><span class="brand-mark">SA</span><span>Student<span class="brand-light">Attend</span></span></div>
+            <nav aria-label="Teacher sections">
+                <a class="nav-link active" href="#classes">My classes</a>
+                <a class="nav-link" href="#roster">Class roster</a>
+                <a class="nav-link" href="#history">Attendance history</a>
+            </nav>
+            <button id="teacherLogoutButton" class="button button-ghost sidebar-logout" type="button">Log out</button>
+        </aside>
+        <main class="dashboard-main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">TEACHER PORTAL</p>
+                    <h1 id="teacherWelcome">Teaching dashboard</h1>
+                    <p class="muted">Take attendance for your assigned classes.</p>
+                </div>
+                <div class="avatar" id="teacherAvatar">T</div>
+            </header>
+            <section class="stats-grid teacher-stats">
+                <article class="stat-card stat-primary"><span class="stat-label">Assigned classes</span><strong id="teacherClassCount">0</strong><span class="stat-note">Available to you</span></article>
+                <article class="stat-card"><span class="stat-label">Students in class</span><strong id="teacherRosterCount">0</strong><span class="stat-note">Current selection</span></article>
+                <article class="stat-card"><span class="stat-label">Records for date</span><strong id="teacherMarkedCount">0</strong><span class="stat-note">Current selection</span></article>
+            </section>
+            <section id="classes" class="panel teacher-class-panel">
+                <div class="panel-heading">
+                    <div><p class="eyebrow">YOUR TIMETABLE</p><h2>Assigned class</h2></div>
+                </div>
+                <div class="teacher-filter-row">
+                    <label for="teacherClassSelect">Class</label>
+                    <select id="teacherClassSelect" required><option value="">Loading classes...</option></select>
+                    <label for="teacherDate">Attendance date</label>
+                    <input id="teacherDate" type="date" required>
+                </div>
+                <p id="teacherMessage" class="form-message" role="status" aria-live="polite"></p>
+            </section>
+            <section id="roster" class="panel teacher-roster-panel">
+                <div class="panel-heading">
+                    <div><p class="eyebrow">ENROLLED STUDENTS</p><h2>Class roster</h2></div>
+                    <span id="teacherRosterBadge" class="badge">0 students</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Student ID</th><th>Name</th><th>Department</th><th>Semester</th><th>Today's status</th></tr></thead>
+                        <tbody id="teacherRosterTable"><tr><td colspan="5" class="empty-state">Choose a class to load its roster.</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="teacher-work-grid">
+                <article class="panel">
+                    <div class="panel-heading"><div><p class="eyebrow">ATTENDANCE</p><h2>Mark a student</h2></div></div>
+                    <form id="teacherAttendanceForm" class="compact-form">
+                        <label>Student<select id="teacherStudentSelect" required><option value="">Choose an enrolled student</option></select></label>
+                        <label>Time<input id="teacherTime" type="time" required></label>
+                        <label>Period<input id="teacherPeriod" type="text" maxlength="50" value="General" required></label>
+                        <label>Status<select id="teacherStatus" required><option value="Present">Present</option><option value="Absent">Absent</option></select></label>
+                        <label class="full-width">Notes<textarea id="teacherNotes" rows="3" maxlength="500"></textarea></label>
+                        <button class="button" type="submit">Save attendance</button>
+                    </form>
+                </article>
+                <article id="history" class="panel">
+                    <div class="panel-heading"><div><p class="eyebrow">CLASS RECORDS</p><h2>Attendance history</h2></div></div>
+                    <div class="table-wrap teacher-history-table">
+                        <table>
+                            <thead><tr><th>Student</th><th>Time</th><th>Status</th></tr></thead>
+                            <tbody id="teacherHistoryTable"><tr><td colspan="3" class="empty-state">Choose a class to load records.</td></tr></tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="panel">
+                    <div class="panel-heading"><div><p class="eyebrow">ACCOUNT SECURITY</p><h2>Change password</h2></div></div>
+                    <form id="teacherPasswordForm" class="compact-form">
+                        <label>Current password<input id="teacherCurrentPassword" type="password" autocomplete="current-password" required></label>
+                        <label>New password<input id="teacherNewPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+                        <label class="full-width">Confirm new password<input id="teacherConfirmPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+                        <button class="button" type="submit">Update password</button>
+                        <p id="teacherPasswordMessage" class="form-message" role="status" aria-live="polite"></p>
+                    </form>
+                </article>
+            </section>
+            <p id="teacherError" class="error-message" role="alert"></p>
+        </main>
+    </div>
+    <script src="teacher.js"></script>
+</body>
+</html>

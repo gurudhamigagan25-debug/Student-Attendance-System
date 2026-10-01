@@ -1,4 +1,11 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = "/api";
+localStorage.removeItem("studentToken");
+localStorage.removeItem("adminToken");
+
+function csrfToken() {
+    const value = document.cookie.split("; ").find((entry) => entry.startsWith("csrf_token="));
+    return value ? decodeURIComponent(value.slice("csrf_token=".length)) : "";
+}
 
 async function readResponse(response) {
     let data;
@@ -8,9 +15,42 @@ async function readResponse(response) {
         throw new Error("The server returned an invalid response");
     }
     if (!response.ok) {
-        throw new Error(data.message || "Request failed");
+        const requestError = new Error(data.message || "Request failed");
+        requestError.status = response.status;
+        throw requestError;
     }
     return data;
+}
+
+async function sessionFetch(url, options = {}, allowRefresh = true) {
+    const headers = { ...(options.headers || {}) };
+    if (!["GET", "HEAD", "OPTIONS"].includes(String(options.method || "GET").toUpperCase())) {
+        const token = csrfToken();
+        if (token) headers["X-CSRF-Token"] = token;
+    }
+    const response = await fetch(`${API_URL}${url}`, { ...options, credentials: "same-origin", headers });
+    if (response.status === 401 && allowRefresh && csrfToken()) {
+        const token = csrfToken();
+        const refresh = await fetch(`${API_URL}/auth/refresh`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: token ? { "X-CSRF-Token": token } : {}
+        });
+        if (refresh.ok) return sessionFetch(url, options, false);
+    }
+    return readResponse(response);
+}
+
+async function studentFetch(url, options = {}) {
+    try {
+        return await sessionFetch(url, options);
+    } catch (error) {
+        if (error.status === 401) {
+            localStorage.removeItem("student");
+            window.location.href = "login.html";
+        }
+        throw error;
+    }
 }
 
 const registerForm = document.getElementById("registerForm");
@@ -26,7 +66,8 @@ if (registerForm) {
         try {
             const response = await fetch(`${API_URL}/students/register`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json", ...(csrfToken() ? { "X-CSRF-Token": csrfToken() } : {}) },
                 body: JSON.stringify({
                     student_id: document.getElementById("student_id").value.trim(),
                     name: document.getElementById("name").value.trim(),
@@ -53,7 +94,8 @@ if (loginForm) {
         try {
             const response = await fetch(`${API_URL}/students/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json", ...(csrfToken() ? { "X-CSRF-Token": csrfToken() } : {}) },
                 body: JSON.stringify({
                     email: document.getElementById("loginEmail").value.trim(),
                     password: document.getElementById("loginPassword").value
@@ -71,7 +113,8 @@ if (loginForm) {
 
 const logoutButton = document.getElementById("logoutButton");
 if (logoutButton) {
-    logoutButton.addEventListener("click", () => {
+    logoutButton.addEventListener("click", async () => {
+        try { await sessionFetch("/auth/logout", { method: "POST" }); } catch (error) { /* local logout still succeeds */ }
         localStorage.removeItem("student");
         window.location.href = "login.html";
     });
@@ -86,14 +129,14 @@ if (adminLoginForm) {
         try {
             const response = await fetch(`${API_URL}/admin/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json", ...(csrfToken() ? { "X-CSRF-Token": csrfToken() } : {}) },
                 body: JSON.stringify({
                     email: document.getElementById("adminEmail").value.trim(),
                     password: document.getElementById("adminPassword").value
                 })
             });
             const data = await readResponse(response);
-            localStorage.setItem("adminToken", data.token);
             localStorage.setItem("adminEmail", data.admin.email);
             window.location.href = "admin.html";
         } catch (error) {
@@ -105,8 +148,7 @@ if (adminLoginForm) {
 
 const adminDashboard = document.querySelector(".admin-shell");
 if (adminDashboard) {
-    const adminToken = localStorage.getItem("adminToken");
-    if (!adminToken) {
+    if (!localStorage.getItem("adminEmail")) {
         window.location.href = "admin-login.html";
     } else {
         let selectedStudent = null;
@@ -115,6 +157,7 @@ if (adminDashboard) {
         const adminSections = {
             students: Array.from(document.querySelectorAll(".admin-overview-section")),
             attendance: [document.getElementById("attendance")],
+            management: [document.getElementById("management")],
             security: [document.getElementById("security")]
         };
         function showAdminSection(sectionName, updateHistory = true) {
@@ -137,19 +180,16 @@ if (adminDashboard) {
         showAdminSection(window.location.hash.replace("#", "") || "students", false);
         document.getElementById("adminNewEmail").value = localStorage.getItem("adminEmail") || "";
         const adminFetch = async (url, options = {}) => {
-            const response = await fetch(`${API_URL}${url}`, {
-                ...options,
-                headers: {
-                    ...(options.headers || {}),
-                    Authorization: "Bearer " + (localStorage.getItem("adminToken") || "")
+            try {
+                return await sessionFetch(url, options);
+            } catch (error) {
+                if (error.status === 401) {
+                    localStorage.removeItem("adminEmail");
+                    window.location.href = "admin-login.html";
+                    throw new Error("Admin session expired");
                 }
-            });
-            if (response.status === 401) {
-                localStorage.removeItem("adminToken");
-                window.location.href = "admin-login.html";
-                throw new Error("Admin session expired");
+                throw error;
             }
-            return readResponse(response);
         };
         const escapeHtml = (value) => String(value == null ? "" : value)
             .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -201,6 +241,19 @@ if (adminDashboard) {
             if (selectedStudent) picker.value = String(selectedStudent.id);
         }
 
+        async function loadClasses() {
+            const data = await adminFetch("/classes");
+            const enrollmentClassSelect = document.getElementById("enrollmentClassSelect");
+            const previousEnrollmentClass = enrollmentClassSelect.value;
+            const options = data.classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.class_name)} - ${escapeHtml(item.subject)}</option>`).join("");
+            document.getElementById("attendanceClass").innerHTML = '<option value="">Select a class</option>' + options;
+            enrollmentClassSelect.innerHTML = '<option value="">Select a class</option>' + options;
+            if (data.classes.some((item) => String(item.id) === previousEnrollmentClass)) {
+                enrollmentClassSelect.value = previousEnrollmentClass;
+                await loadEnrollmentRoster();
+            }
+        }
+
         async function loadStudents() {
             const search = encodeURIComponent(document.getElementById("studentSearch").value.trim());
             const data = await adminFetch(`/admin/students?search=${search}`);
@@ -216,11 +269,120 @@ if (adminDashboard) {
                 </tr>`).join("")
                 : '<tr><td colspan="5" class="empty-state">No students found.</td></tr>';
             populateAttendanceStudents(data.students);
+            document.getElementById("enrollmentStudentSelect").innerHTML = '<option value="">Select a student</option>' +
+                data.students.map((student) => `<option value="${escapeHtml(student.id)}">${escapeHtml(student.student_id)} - ${escapeHtml(student.name)}</option>`).join("");
+        }
+
+        async function loadTeachers() {
+            const data = await adminFetch("/teachers");
+            document.getElementById("adminTeacherTable").innerHTML = data.teachers.length
+                ? data.teachers.map((teacher) => `<tr><td>${escapeHtml(teacher.name)}</td><td>${escapeHtml(teacher.email)}</td></tr>`).join("")
+                : '<tr><td colspan="2" class="empty-state">No teacher accounts yet.</td></tr>';
+            document.getElementById("classTeacherSelect").innerHTML = '<option value="">Unassigned</option>' +
+                data.teachers.map((teacher) => `<option value="${escapeHtml(teacher.id)}">${escapeHtml(teacher.name)} - ${escapeHtml(teacher.email)}</option>`).join("");
+        }
+
+        async function loadEnrollmentRoster() {
+            const classId = document.getElementById("enrollmentClassSelect").value;
+            const roster = document.getElementById("adminEnrollmentRoster");
+            if (!classId) {
+                roster.innerHTML = '<tr><td colspan="4" class="empty-state">Select a class to view its roster.</td></tr>';
+                return;
+            }
+            const data = await adminFetch(`/classes/${encodeURIComponent(classId)}/enrollments`);
+            roster.innerHTML = data.students.length
+                ? data.students.map((student) => `<tr><td>${escapeHtml(student.student_id)}</td><td>${escapeHtml(student.name)}</td><td>${escapeHtml(student.department)}</td><td><button class="button remove-enrollment" data-student-id="${escapeHtml(student.id)}" type="button">Remove</button></td></tr>`).join("")
+                : '<tr><td colspan="4" class="empty-state">No students are enrolled in this class.</td></tr>';
         }
 
         document.getElementById("studentSearchForm").addEventListener("submit", (event) => {
             event.preventDefault();
             loadStudents().catch((error) => { adminError.textContent = error.message; });
+        });
+        document.getElementById("teacherCreateForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const message = document.getElementById("teacherCreateMessage");
+            try {
+                const data = await adminFetch("/teachers", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: document.getElementById("newTeacherName").value.trim(),
+                        email: document.getElementById("newTeacherEmail").value.trim(),
+                        password: document.getElementById("newTeacherPassword").value
+                    })
+                });
+                message.textContent = data.message;
+                message.className = "form-message success-message";
+                form.reset();
+                await loadTeachers();
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = "form-message error-message";
+            }
+        });
+        document.getElementById("classCreateForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const message = document.getElementById("classCreateMessage");
+            const teacherSelect = document.getElementById("classTeacherSelect");
+            try {
+                const data = await adminFetch("/classes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        class_name: document.getElementById("newClassName").value.trim(),
+                        subject: document.getElementById("newClassSubject").value.trim(),
+                        department: document.getElementById("newClassDepartment").value.trim(),
+                        semester: document.getElementById("newClassSemester").value,
+                        teacher_name: teacherSelect.value ? teacherSelect.selectedOptions[0].textContent.split(" - ")[0] : "Unassigned",
+                        teacher_user_id: teacherSelect.value || null
+                    })
+                });
+                message.textContent = data.message;
+                message.className = "form-message success-message";
+                form.reset();
+                await loadClasses();
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = "form-message error-message";
+            }
+        });
+        document.getElementById("enrollmentClassSelect").addEventListener("change", () => {
+            loadEnrollmentRoster().catch((error) => { adminError.textContent = error.message; });
+        });
+        document.getElementById("enrollmentForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const message = document.getElementById("enrollmentMessage");
+            const classId = document.getElementById("enrollmentClassSelect").value;
+            const studentId = document.getElementById("enrollmentStudentSelect").value;
+            try {
+                const result = await adminFetch(`/classes/${encodeURIComponent(classId)}/enrollments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ student_id: studentId })
+                });
+                message.textContent = result.message;
+                message.className = "form-message success-message";
+                document.getElementById("enrollmentStudentSelect").value = "";
+                await loadEnrollmentRoster();
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = "form-message error-message";
+            }
+        });
+        document.getElementById("adminEnrollmentRoster").addEventListener("click", async (event) => {
+            const button = event.target.closest(".remove-enrollment");
+            if (!button) return;
+            const classId = document.getElementById("enrollmentClassSelect").value;
+            try {
+                await adminFetch(`/classes/${encodeURIComponent(classId)}/enrollments/${encodeURIComponent(button.dataset.studentId)}`, { method: "DELETE" });
+                await loadEnrollmentRoster();
+            } catch (error) {
+                document.getElementById("enrollmentMessage").textContent = error.message;
+                document.getElementById("enrollmentMessage").className = "form-message error-message";
+            }
         });
         document.getElementById("adminStudentTable").addEventListener("click", (event) => {
             const button = event.target.closest(".select-student");
@@ -238,8 +400,8 @@ if (adminDashboard) {
             }
         });
         document.getElementById("adminLogoutButton").addEventListener("click", async () => {
-            try { await adminFetch("/admin/logout", { method: "POST" }); } catch (error) { /* local logout still succeeds */ }
-            localStorage.removeItem("adminToken");
+            try { await adminFetch("/auth/logout", { method: "POST" }); } catch (error) { /* local logout still succeeds */ }
+            localStorage.removeItem("adminEmail");
             window.location.href = "admin-login.html";
         });
         document.getElementById("adminAccountForm").addEventListener("submit", async (event) => {
@@ -266,7 +428,7 @@ if (adminDashboard) {
                 message.className = "form-message success-message";
                 document.getElementById("adminAccountForm").reset();
                 setTimeout(() => {
-                    localStorage.removeItem("adminToken");
+                    sessionFetch("/auth/logout", { method: "POST" }).catch(() => {});
                     localStorage.setItem("adminEmail", newEmail);
                     window.location.href = "admin-login.html";
                 }, 900);
@@ -287,6 +449,7 @@ if (adminDashboard) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
+                        class_id: document.getElementById("attendanceClass").value,
                         date: document.getElementById("attendanceDate").value,
                         time: document.getElementById("attendanceTime").value,
                         period: document.getElementById("attendancePeriod").value.trim(),
@@ -308,6 +471,8 @@ if (adminDashboard) {
         document.getElementById("attendanceTime").value = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
         document.getElementById("attendanceForm").querySelector("button[type=submit]").disabled = true;
         loadStudents().catch((error) => { adminError.textContent = error.message; });
+        loadClasses().catch((error) => { adminError.textContent = error.message; });
+        loadTeachers().catch((error) => { adminError.textContent = error.message; });
     }
 }
 
@@ -367,8 +532,7 @@ if (dashboard) {
 
         async function loadAttendance() {
             try {
-                const response = await fetch(`${API_URL}/students/${student.id}/attendance`);
-                const data = await readResponse(response);
+                const data = await studentFetch(`/students/${student.id}/attendance`);
                 document.getElementById("attendancePercentage").textContent = `${data.summary.percentage}%`;
                 document.getElementById("presentDays").textContent = data.summary.present;
                 document.getElementById("absentDays").textContent = data.summary.absent;
@@ -390,11 +554,10 @@ if (dashboard) {
             event.preventDefault();
             const message = document.getElementById("profileMessage");
             try {
-                const response = await fetch(`${API_URL}/students/${student.id}/profile`, {
+                const data = await studentFetch(`/students/${student.id}/profile`, {
                     method: "PUT", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name: profileName.value, phone: profilePhone.value, department: profileDepartment.value, semester: profileSemester.value })
                 });
-                const data = await readResponse(response);
                 Object.assign(student, data.student);
                 localStorage.setItem("student", JSON.stringify(student));
                 refreshIdentity();
@@ -416,11 +579,10 @@ if (dashboard) {
                 return;
             }
             try {
-                const response = await fetch(`${API_URL}/students/${student.id}/password`, {
+                const data = await studentFetch(`/students/${student.id}/password`, {
                     method: "PUT", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ currentPassword: document.getElementById("currentPassword").value, newPassword })
                 });
-                const data = await readResponse(response);
                 message.textContent = data.message;
                 message.className = "form-message success-message";
                 document.getElementById("passwordForm").reset();

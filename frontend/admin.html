@@ -13,6 +13,7 @@
             <nav aria-label="Admin sections">
                 <a class="nav-link active" href="#students">Student overview</a>
                 <a class="nav-link" href="#attendance">Attendance</a>
+                <a class="nav-link" href="#management">Classes and roster</a>
                 <a class="nav-link" href="#security">Change password of admin</a>
             </nav>
             <button id="adminLogoutButton" class="button button-ghost sidebar-logout" type="button">Log out</button>
@@ -66,6 +67,11 @@
                         <div><p class="eyebrow">ATTENDANCE ENTRY</p><h2 id="adminAttendanceTitle">Select a student first</h2></div>
                         <span class="badge">Date and period</span>
                     </div>
+                    <label class="attendance-student-picker">Class
+                        <select id="attendanceClass" required>
+                            <option value="">Select a class</option>
+                        </select>
+                    </label>
                     <label class="attendance-student-picker">Student
                         <select id="attendanceStudent" required>
                             <option value="">Select a student</option>
@@ -91,6 +97,47 @@
                     </div>
                 </article>
             </section>
+            <section id="management" class="admin-management-section">
+                <div class="admin-management-grid">
+                    <article class="panel">
+                        <div class="panel-heading"><div><p class="eyebrow">TEACHER ACCOUNTS</p><h2>Add a teacher</h2></div></div>
+                        <form id="teacherCreateForm" class="compact-form">
+                            <label>Full name<input id="newTeacherName" maxlength="100" required></label>
+                            <label>Email<input id="newTeacherEmail" type="email" maxlength="150" required></label>
+                            <label class="full-width">Temporary password<input id="newTeacherPassword" type="password" minlength="12" required></label>
+                            <button class="button" type="submit">Create teacher</button>
+                            <p id="teacherCreateMessage" class="form-message" role="status" aria-live="polite"></p>
+                        </form>
+                        <div class="table-wrap management-table">
+                            <table><thead><tr><th>Teacher</th><th>Email</th></tr></thead><tbody id="adminTeacherTable"><tr><td colspan="2" class="empty-state">Loading teachers...</td></tr></tbody></table>
+                        </div>
+                    </article>
+                    <article class="panel">
+                        <div class="panel-heading"><div><p class="eyebrow">CLASS SETUP</p><h2>Add a class</h2></div></div>
+                        <form id="classCreateForm" class="compact-form">
+                            <label>Class name<input id="newClassName" maxlength="100" required></label>
+                            <label>Subject<input id="newClassSubject" maxlength="100" required></label>
+                            <label>Department<input id="newClassDepartment" maxlength="50" required></label>
+                            <label>Semester<input id="newClassSemester" type="number" min="1" max="8" step="1" required></label>
+                            <label class="full-width">Assigned teacher<select id="classTeacherSelect"><option value="">Unassigned</option></select></label>
+                            <button class="button" type="submit">Create class</button>
+                            <p id="classCreateMessage" class="form-message" role="status" aria-live="polite"></p>
+                        </form>
+                    </article>
+                </div>
+                <article class="panel enrollment-panel">
+                    <div class="panel-heading"><div><p class="eyebrow">CLASS ROSTER</p><h2>Enroll students</h2></div></div>
+                    <form id="enrollmentForm" class="admin-search-form">
+                        <label>Class<select id="enrollmentClassSelect" required><option value="">Select a class</option></select></label>
+                        <label>Student<select id="enrollmentStudentSelect" required><option value="">Select a student</option></select></label>
+                        <button class="button" type="submit">Enroll</button>
+                    </form>
+                    <p id="enrollmentMessage" class="form-message" role="status" aria-live="polite"></p>
+                    <div class="table-wrap management-table">
+                        <table><thead><tr><th>Student ID</th><th>Name</th><th>Department</th><th></th></tr></thead><tbody id="adminEnrollmentRoster"><tr><td colspan="4" class="empty-state">Select a class to view its roster.</td></tr></tbody></table>
+                    </div>
+                </article>
+            </section>
             <section id="security" class="panel admin-security-panel">
                 <div class="panel-heading">
                     <div><p class="eyebrow">ACCOUNT SECURITY</p><h2>Change password of admin</h2></div>
@@ -99,8 +146,8 @@
                 <form id="adminAccountForm" class="compact-form">
                     <label>Current password<input id="adminCurrentPassword" type="password" required></label>
                     <label>New Gmail ID<input id="adminNewEmail" type="email" placeholder="admin@example.com" required></label>
-                    <label>New password<input id="adminNewPassword" type="password" minlength="6" required></label>
-                    <label>Confirm new password<input id="adminConfirmPassword" type="password" minlength="6" required></label>
+                    <label>New password<input id="adminNewPassword" type="password" minlength="12" required></label>
+                    <label>Confirm new password<input id="adminConfirmPassword" type="password" minlength="12" required></label>
                     <button class="button" type="submit">Save admin account</button>
                     <p id="adminAccountMessage" class="form-message"></p>
                 </form>

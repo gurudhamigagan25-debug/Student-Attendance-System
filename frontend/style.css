@@ -106,6 +106,15 @@ th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spa
 .admin-history-table th, .admin-history-table td { padding-left: 4px; padding-right: 4px; }
 .admin-security-panel { margin-top: 22px; }
 .admin-security-copy { text-align: left; margin: 0 0 16px; }
+.admin-management-grid, .teacher-work-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.admin-management-section, .enrollment-panel, .teacher-roster-panel { margin-top: 22px; }
+.management-table { max-height: 260px; margin-top: 18px; }
+.teacher-class-panel { margin-bottom: 22px; }
+.teacher-filter-row { display: grid; grid-template-columns: 80px minmax(180px, 1fr) 100px minmax(160px, 220px); gap: 10px; align-items: center; }
+.teacher-filter-row label { margin: 0; }
+.teacher-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.teacher-history-table { max-height: 430px; }
+.full-width { grid-column: 1 / -1; }
 
 @media (max-width: 900px) {
     .sidebar { width: 190px; flex-basis: 190px; }
@@ -115,6 +124,8 @@ th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spa
     .password-form { grid-template-columns: 1fr 1fr; }
     .password-form .button { grid-column: 1 / -1; width: max-content; }
     .admin-detail-grid, .admin-attendance-section { grid-template-columns: 1fr; }
+    .admin-management-grid, .teacher-work-grid { grid-template-columns: 1fr; }
+    .teacher-filter-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
     .dashboard-shell { display: block; }
@@ -135,4 +146,6 @@ th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spa
     .admin-search-form .button { width: 100%; }
     .student-details { grid-template-columns: 1fr; }
     .admin-attendance-form .full-width { grid-column: auto; }
+    .teacher-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .teacher-filter-row { gap: 6px; }
 }

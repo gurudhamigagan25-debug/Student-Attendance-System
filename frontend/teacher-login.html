@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Sign In | Student Attendance</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <section class="card">
+            <p class="eyebrow">TEACHER PORTAL</p>
+            <h1>Student Attendance System</h1>
+            <h2>Teacher sign in</h2>
+            <form id="teacherLoginForm">
+                <label for="teacherEmail">Email</label>
+                <input id="teacherEmail" type="email" autocomplete="username" maxlength="150" required>
+                <label for="teacherPassword">Password</label>
+                <input id="teacherPassword" type="password" autocomplete="current-password" required>
+                <button class="button" type="submit">Sign in</button>
+                <p id="teacherLoginMessage" class="form-message" role="status" aria-live="polite"></p>
+            </form>
+            <p><a href="login.html">Student login</a> · <a href="admin-login.html">Admin login</a></p>
+        </section>
+    </main>
+    <script src="teacher.js"></script>
+</body>
+</html>
